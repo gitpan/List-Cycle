@@ -1,0 +1,11 @@
+Changes
+Cycle.pm
+MANIFEST
+Makefile.PL
+README
+t/00-load.t
+t/new.t
+t/next.t
+t/pod-coverage.t
+t/pod.t
+META.yml                                 Module meta-data (added by MakeMaker)
