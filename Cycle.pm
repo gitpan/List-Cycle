@@ -2,6 +2,8 @@ package List::Cycle;
 
 use warnings;
 use strict;
+use Carp;
+use UNIVERSAL qw( isa );
 
 =head1 NAME
 
@@ -9,39 +11,117 @@ List::Cycle - Objects for cycling through a list of values
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
     use List::Cycle;
 
-    my $color = List::Cycle->new( '#000000', '#FAFAFA', '#BADDAD' );
-    print $color->next;
+    my $color = List::Cycle->new( {vals => ['#000000', '#FAFAFA', '#BADDAD']} );
+    print $color->next; # #000000
+    print $color->next; # #FAFAFA
+    print $color->next; # #BADDAD
+    print $color->next; # #000000
 
 =head1 FUNCTIONS
 
-=head2 new( @values )
+=head2 new( {vals => \@values} )
 
 Creates a new cycle object, using I<@values>.
 
 =cut
 
-my %values_of;
-my %pointer_of;
+my %storage = (
+    'values' => \my %values_of,
+    'pointer' => \my %pointer_of,
+);
 
 sub new {
     my $class = shift;
-    my $self = \join( q{ }, caller, scalar localtime );
+    my $args = shift;
+
+    my $self = \do { my $scalar };
     bless $self, $class;
 
-    $values_of{ $self } = [@_];
-    $pointer_of{ $self } = 0;
+    $self->_init( %$args );
 
     return $self;
+}
+
+sub _init {
+    my $self = shift;
+    my @args = @_;
+
+    $self->_store_pointer( 0 );
+    while ( @args ) {
+        my $key = shift @args;
+        my $value = shift @args;
+
+        if ( $key eq "vals" ) {
+            $values_of{ $self } = $value;
+        }
+        else {
+            croak "$key is not a valid constructor value";
+        }
+    }
+
+    return $self;
+}
+
+sub DESTROY {
+    my $self = shift;
+
+    for my $attr_ref ( values %storage ) {
+        delete $attr_ref->{$self};
+    }
+}
+
+sub _pointer {
+    my $self = shift;
+
+    return $pointer_of{ $self };
+}
+
+sub _store_pointer {
+    my $self = shift;
+
+    $pointer_of{ $self } = shift;
+}
+
+=head2 $cycle->reset
+
+Sets the internal pointer back to the beginning of the cycle.
+
+=cut
+
+sub reset {
+    my $self = shift;
+
+    $self->_store_pointer(0);
+
+    return;
+}
+
+=head2 $cycle->dump
+
+Returns a handy string representation of internals.
+
+=cut
+
+sub dump {
+    my $self = shift;
+    my $str = "";
+
+    while ( my($key,$value) = each %storage ) {
+        my $realval = $value->{$self};
+        $realval = join( ",", @$realval ) if isa( $realval, "ARRAY" );
+        $str .= "$key => $realval\n";
+    }
+    return $str;
 }
 
 =head2 $cycle->next
@@ -55,7 +135,7 @@ sub next {
 
     my $ptr = $pointer_of{ $self }++;
     if ( $pointer_of{ $self } >= @{$values_of{$self}} ) {
-        $pointer_of{ $self } = 0;
+        $self->reset();
     }
     return $values_of{ $self }[$ptr];
 }
@@ -73,6 +153,11 @@ I will be notified, and then you'll automatically be notified of progress on
 your bug as I make changes.
 
 =head1 ACKNOWLEDGEMENTS
+
+List::Cycle is a playground that uses some of the ideas in Damian Conway's
+marvelous I<Perl Best Practices>, due out in mid-2005 from O'Reilly.
+One of the chapters mentions a mythical List::Cycle module, so I made
+it real.
 
 =head1 COPYRIGHT & LICENSE
 

@@ -6,7 +6,7 @@ BEGIN {
     use_ok( 'List::Cycle' );
 }
 
-my $cycle = List::Cycle->new( 2112, 5150, 90125 );
+my $cycle = List::Cycle->new( {vals=> [2112, 5150, 90125]} );
 isa_ok( $cycle, 'List::Cycle' );
 
 is( $cycle->next,  2112, q{We are the priests} );

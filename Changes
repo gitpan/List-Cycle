@@ -1,5 +1,7 @@
 Revision history for List-Cycle
 
-0.01    Sun Mar 27 23:52:18 CST 2005
-        First version, released on an unsuspecting world.
+0.02    Thu Mar 31 09:35:11 CST 2005
+
+        First real version.  If you were using 0.01, I'm sorry.
+        Change your constructor calls.
 
