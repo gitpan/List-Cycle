@@ -12,5 +12,5 @@ WriteMakefile(
         'Test::More' => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean               => { FILES => 'List-Cycle-*' },
+    clean               => { FILES => 'List-Cycle-* cover_db' },
 );

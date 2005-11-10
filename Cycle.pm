@@ -11,17 +11,17 @@ List::Cycle - Objects for cycling through a list of values
 
 =head1 VERSION
 
-Version 0.02
+Version 0.04
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.04';
 
 =head1 SYNOPSIS
 
     use List::Cycle;
 
-    my $color = List::Cycle->new( {vals => ['#000000', '#FAFAFA', '#BADDAD']} );
+    my $color = List::Cycle->new( {values => ['#000000', '#FAFAFA', '#BADDAD']} );
     print $color->next; # #000000
     print $color->next; # #FAFAFA
     print $color->next; # #BADDAD
@@ -29,9 +29,11 @@ our $VERSION = '0.02';
 
 =head1 FUNCTIONS
 
-=head2 new( {vals => \@values} )
+=head2 new( {values => \@values} )
 
 Creates a new cycle object, using I<@values>.
+
+The C<values> keyword can be C<vals>, if you like.
 
 =cut
 
@@ -61,8 +63,8 @@ sub _init {
         my $key = shift @args;
         my $value = shift @args;
 
-        if ( $key eq "vals" ) {
-            $values_of{ $self } = $value;
+        if ( $key =~ /^val(ue)?s$/ ) {
+            $self->set_values($value);
         }
         else {
             croak "$key is not a valid constructor value";
@@ -70,6 +72,19 @@ sub _init {
     }
 
     return $self;
+}
+
+=head2 C<< $cycle->set_values(\@values) >>
+
+Sets the cycle values and resets the internal pointer.
+
+=cut
+
+sub set_values {
+    my ($self, $values) = @_;
+
+    $values_of{ $self } = $values;
+    $self->reset;
 }
 
 sub DESTROY {
@@ -92,9 +107,21 @@ sub _store_pointer {
     $pointer_of{ $self } = shift;
 }
 
+sub _inc_pointer {
+    my $self = shift;
+    my $ptr  = $self->_pointer;
+    $self->_store_pointer(($ptr+1) % @{$values_of{$self}});
+}
+
 =head2 $cycle->reset
 
 Sets the internal pointer back to the beginning of the cycle.
+
+    my $color = List::Cycle->new( {values => [qw(red white blue)]} );
+    print $color->next; # red
+    print $color->next; # white
+    $color->reset;
+    print $color->next; # red
 
 =cut
 
@@ -133,16 +160,44 @@ Gives the next value in the sequence.
 sub next {
     my $self = shift;
 
-    my $ptr = $pointer_of{ $self }++;
-    if ( $pointer_of{ $self } >= @{$values_of{$self}} ) {
-        $self->reset();
-    }
+    croak "no cycle values provided!" unless $values_of{ $self };
+
+    my $ptr = $self->_pointer;
+    $self->_inc_pointer;
     return $values_of{ $self }[$ptr];
 }
 
 =head1 AUTHOR
 
-Andy Lester, C<< <andy@petdance.com> >>
+Andy Lester, C<< <andy at petdance.com> >>
+
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc List::Cycle
+
+You can also look for information at:
+
+=over 4
+
+=item * AnnoCPAN: Annotated CPAN documentation
+
+L<http://annocpan.org/dist/List-Cycle>
+
+=item * CPAN Ratings
+
+L<http://cpanratings.perl.org/d/List-Cycle>
+
+=item * RT: CPAN's request tracker
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=List-Cycle>
+
+=item * Search CPAN
+
+L<http://search.cpan.org/dist/List-Cycle>
+
+=back
 
 =head1 BUGS
 
@@ -155,9 +210,11 @@ your bug as I make changes.
 =head1 ACKNOWLEDGEMENTS
 
 List::Cycle is a playground that uses some of the ideas in Damian Conway's
-marvelous I<Perl Best Practices>, due out in mid-2005 from O'Reilly.
+marvelous I<Perl Best Practices>.  L<http://www.oreilly.com/catalog/perlbp/>
 One of the chapters mentions a mythical List::Cycle module, so I made
 it real.
+
+Thanks also to Ricardo SIGNES for patches.
 
 =head1 COPYRIGHT & LICENSE
 
