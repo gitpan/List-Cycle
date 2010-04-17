@@ -2,8 +2,7 @@ package List::Cycle;
 
 use warnings;
 use strict;
-use Carp;
-use UNIVERSAL qw( isa );
+use Carp ();
 
 =head1 NAME
 
@@ -11,21 +10,42 @@ List::Cycle - Objects for cycling through a list of values
 
 =head1 VERSION
 
-Version 0.04
+Version 1.00
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '1.00';
 
 =head1 SYNOPSIS
 
+List::Cycle gives you an iterator object for cycling through a series
+of values.  The canonical use is for cycling through a list of colors
+for alternating bands of color on a report.
+
     use List::Cycle;
 
-    my $color = List::Cycle->new( {values => ['#000000', '#FAFAFA', '#BADDAD']} );
-    print $color->next; # #000000
-    print $color->next; # #FAFAFA
-    print $color->next; # #BADDAD
-    print $color->next; # #000000
+    my $colors = List::Cycle->new( {values => ['#000000', '#FAFAFA', '#BADDAD']} );
+    print $colors->next; # #000000
+    print $colors->next; # #FAFAFA
+    print $colors->next; # #BADDAD
+    print $colors->next; # #000000
+    print $colors->next; # #FAFAFA
+    ... etc ...
+
+You'd call it at the top of a loop:
+
+    while ( ... ) {
+        my $color = $colors->next;
+        print qq{<tr bgcolor="$color">;
+        ...
+    }
+
+Note that a List::Cycle object is not a standard Perl blessed hash.
+It's an inside-out object, as suggested in I<Perl Best Practices>.
+In the five years since I<PBP> has come out, inside-out objects have
+been almost universally ignored, but I keep List::Cycle as an example.
+If you don't care about the internals of the object, then List::Cycle
+is a fine module for you to use.
 
 =head1 FUNCTIONS
 
@@ -38,8 +58,8 @@ The C<values> keyword can be C<vals>, if you like.
 =cut
 
 my %storage = (
-    'values' => \my %values_of,
-    'pointer' => \my %pointer_of,
+    values  => \my %values_of,
+    pointer => \my %pointer_of,
 );
 
 sub new {
@@ -67,7 +87,7 @@ sub _init {
             $self->set_values($value);
         }
         else {
-            croak "$key is not a valid constructor value";
+            Carp::croak( "$key is not a valid constructor value" );
         }
     }
 
@@ -93,6 +113,8 @@ sub DESTROY {
     for my $attr_ref ( values %storage ) {
         delete $attr_ref->{$self};
     }
+
+    return;
 }
 
 sub _pointer {
@@ -105,12 +127,16 @@ sub _store_pointer {
     my $self = shift;
 
     $pointer_of{ $self } = shift;
+
+    return;
 }
 
 sub _inc_pointer {
     my $self = shift;
     my $ptr  = $self->_pointer;
     $self->_store_pointer(($ptr+1) % @{$values_of{$self}});
+
+    return;
 }
 
 =head2 $cycle->reset
@@ -121,7 +147,7 @@ Sets the internal pointer back to the beginning of the cycle.
     print $color->next; # red
     print $color->next; # white
     $color->reset;
-    print $color->next; # red
+    print $color->next; # red, not blue
 
 =cut
 
@@ -145,7 +171,7 @@ sub dump {
 
     while ( my($key,$value) = each %storage ) {
         my $realval = $value->{$self};
-        $realval = join( ",", @$realval ) if isa( $realval, "ARRAY" );
+        $realval = join( ",", @$realval ) if UNIVERSAL::isa( $realval, "ARRAY" );
         $str .= "$key => $realval\n";
     }
     return $str;
@@ -160,7 +186,7 @@ Gives the next value in the sequence.
 sub next {
     my $self = shift;
 
-    croak "no cycle values provided!" unless $values_of{ $self };
+    Carp::croak( 'no cycle values provided!' ) unless $values_of{ $self };
 
     my $ptr = $self->_pointer;
     $self->_inc_pointer;
@@ -197,6 +223,10 @@ L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=List-Cycle>
 
 L<http://search.cpan.org/dist/List-Cycle>
 
+=item * Source code repository
+
+L<http://github.com/petdance/list-cycle>
+
 =back
 
 =head1 BUGS
@@ -214,15 +244,22 @@ marvelous I<Perl Best Practices>.  L<http://www.oreilly.com/catalog/perlbp/>
 One of the chapters mentions a mythical List::Cycle module, so I made
 it real.
 
-Thanks also to Ricardo SIGNES for patches.
+Thanks also to Ricardo SIGNES and Todd Rinaldo for patches.
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2005 Andy Lester, All Rights Reserved.
+Copyright 2005-2010 Andy Lester.
 
 This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+under the terms of either:
 
-=cut
+=over 4
+
+=item * the GNU General Public License as published by the Free Software
+Foundation; either version 1, or (at your option) any later version, or
+
+=item * the Artistic License version 2.0.
+
+=back
 
 1; # End of List::Cycle
